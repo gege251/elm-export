@@ -8,10 +8,10 @@ import PostType exposing (..)
 
 decodePost : Decoder Post
 decodePost =
-    decode Post
+    Json.Decode.succeed Post
         |> required "postId" int
         |> required "postName" string
-        |> required "postAge" (maybe float)
+        |> required "postAge" (nullable float)
         |> required "postComments" (list decodeComment)
-        |> required "postPromoted" (maybe decodeComment)
-        |> required "postAuthor" (maybe string)
+        |> required "postPromoted" (nullable decodeComment)
+        |> required "postAuthor" (nullable string)

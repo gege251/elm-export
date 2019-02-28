@@ -1,21 +1,23 @@
-{-# LANGUAGE DefaultSignatures    #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Elm.Type where
 
-import           Data.Int     (Int16, Int32, Int64, Int8)
-import           Data.IntMap
-import           Data.Map
-import           Data.Proxy
-import           Data.Text
-import           Data.Time
-import           GHC.Generics
-import           Prelude
+import Data.Int (Int16, Int32, Int64, Int8)
+import Data.IntMap
+import Data.List.NonEmpty (NonEmpty)
+import Data.Map
+import Data.Proxy
+import Data.Text hiding (all)
+import Data.Time
+import GHC.Generics
+import Numeric.Natural (Natural)
+import Prelude
 
 data ElmDatatype
   = ElmDatatype Text
@@ -104,7 +106,7 @@ instance (Selector s, GenericElmValue a) =>
          GenericElmValue (S1 s a) where
   genericToElmValue selector =
     case selName selector of
-      ""   -> genericToElmValue (undefined :: a p)
+      "" -> genericToElmValue (undefined :: a p)
       name -> ElmField (pack name) (genericToElmValue (undefined :: a p))
 
 instance (GenericElmValue f, GenericElmValue g) =>
@@ -122,11 +124,15 @@ instance ElmType a =>
   genericToElmValue _ =
     case toElmType (Proxy :: Proxy a) of
       ElmPrimitive primitive -> ElmPrimitiveRef primitive
-      ElmDatatype name _     -> ElmRef name
+      ElmDatatype name _ -> ElmRef name
 
 instance ElmType a =>
          ElmType [a] where
   toElmType _ = ElmPrimitive (EList (toElmType (Proxy :: Proxy a)))
+
+instance ElmType a =>
+         ElmType (NonEmpty a) where
+  toElmType _ = toElmType (Proxy :: Proxy [a])
 
 instance ElmType a =>
          ElmType (Maybe a) where
@@ -162,6 +168,9 @@ instance ElmType Int32 where
 instance ElmType Int64 where
   toElmType _ = ElmPrimitive EInt
 
+instance ElmType Natural where
+  toElmType _ = ElmPrimitive EInt
+
 instance (ElmType a, ElmType b) =>
          ElmType (a, b) where
   toElmType _ =
@@ -188,6 +197,9 @@ class HasElmComparable a where
 instance HasElmComparable String where
   toElmComparable _ = EString
 
+instance HasElmComparable Text where
+  toElmComparable _ = EString
+
 instance ElmType Int where
   toElmType _ = ElmPrimitive EInt
 
@@ -196,3 +208,11 @@ instance ElmType Char where
 
 instance ElmType Bool where
   toElmType _ = ElmPrimitive EBool
+
+-- | Whether a set of constructors is an enumeration, i.e. whether they lack
+-- values. data A = A | B | C would be simple data A = A Int | B | C would not
+-- be simple.
+isEnumeration :: ElmConstructor -> Bool
+isEnumeration (NamedConstructor _ ElmEmpty) = True
+isEnumeration (MultipleConstructors cs) = all isEnumeration cs
+isEnumeration _ = False
