@@ -1,6 +1,6 @@
 # Elm Export
 
-[![Build Status](https://travis-ci.org/krisajenkins/elm-export.svg)](https://travis-ci.org/krisajenkins/elm-export)
+[![Build Status](https://travis-ci.org/gege251/elm-export.svg)](https://travis-ci.org/krisajenkins/elm-export)
 
 Create Elm classes and JSON decoders from Haskell DataTypes.
 
